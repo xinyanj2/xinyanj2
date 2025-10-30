@@ -1,0 +1,93 @@
+// Xinyan_Jiang.erd
+// BigER-style ER model derived from Mini Case Group 1 (entities & business rules inferred from provided list)
+// Assumptions: business rules follow typical retail invoicing patterns: one Customer -> many Invoices; one Invoice -> many Lines; Line -> one Product; Product -> one Vendor; Invoice handled by one or more Employees (sales/clerks); Employees may have a manager (self-ref).
+
+ENTITY Customer {
+    KEY Cust_ID;
+    ATTRIBUTE Cust_LName;
+    ATTRIBUTE Cust_FName;
+    ATTRIBUTE Cust_Contact;
+    ATTRIBUTE Cust_Total;        // accumulated lifetime sales (optional)
+    ATTRIBUTE Cust_Balance;      // current outstanding balance
+    ATTRIBUTE Cust_Segmentation; // e.g., Gold/Silver/Bronze
+}
+
+ENTITY Invoice {
+    KEY Invoice_Num;
+    ATTRIBUTE Invoice_DateTime;
+    REFERENCE Cust_ID -> Customer.Cust_ID;
+}
+
+ENTITY Line {
+    KEY Line_Num;
+    REFERENCE Invoice_Num -> Invoice.Invoice_Num;
+    REFERENCE Prod_Code -> Product.Prod_Code;
+    ATTRIBUTE Line_Units;
+    ATTRIBUTE Line_Price;
+}
+
+ENTITY Product {
+    KEY Prod_Code;
+    REFERENCE Vendor_ID -> Vendor.Vendor_ID;
+    ATTRIBUTE Prod_Desc;
+    ATTRIBUTE Prod_Price;
+    ATTRIBUTE Prod_INV_On_Hand;     // normalized name (no hyphen)
+    ATTRIBUTE Prod_Last_Restock;
+    ATTRIBUTE Prod_Next_Restock;
+}
+
+ENTITY Vendor {
+    KEY Vendor_ID;
+    ATTRIBUTE Vendor_Name;
+    ATTRIBUTE Vendor_Contact;
+    ATTRIBUTE Vendor_State;
+    ATTRIBUTE Vendor_ZIP;
+    ATTRIBUTE Vendor_Order; // typical ordering account/reference
+}
+
+ENTITY Employee {
+    KEY Emp_ID;
+    // Which invoice(s) an employee is associated with is modeled via relationship below.
+    ATTRIBUTE Emp_Manager; // stores manager Emp_ID (nullable) for simple self-ref
+    ATTRIBUTE Emp_LName;
+    ATTRIBUTE Emp_FName;
+}
+
+// Relationships (explicit cardinalities). Use these for the BigER plugin to render cardinality lines.
+RELATIONSHIP Customer_Invoice {
+    FROM Customer (1);
+    TO Invoice (M);
+    // Business rule: each Invoice must reference exactly one Customer; a Customer can have zero..many Invoices.
+}
+
+RELATIONSHIP Invoice_Line {
+    FROM Invoice (1);
+    TO Line (M);
+    // Business rule: an Invoice is composed of one or more Lines.
+}
+
+RELATIONSHIP Product_Line {
+    FROM Product (1);
+    TO Line (M);
+    // Business rule: a Line references exactly one Product; a Product can appear on many Lines.
+}
+
+RELATIONSHIP Vendor_Product {
+    FROM Vendor (1);
+    TO Product (M);
+    // Business rule: a Product is supplied by one Vendor; Vendor supplies many Products.
+}
+
+RELATIONSHIP Invoice_Employee {
+    FROM Invoice (1);
+    TO Employee (0,M);
+    // Business rule assumption: one Invoice can be handled/recorded by zero or many Employees (e.g., multiple clerks); an Employee can handle many Invoices.
+}
+
+RELATIONSHIP Employee_Manager {
+    FROM Employee (0,1);
+    TO Employee (0,M);
+    // Business rule: an Employee may have zero or one direct manager; a manager can manage zero..many Employees.
+}
+
+// End of ERD
